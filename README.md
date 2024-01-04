@@ -1,3 +1,3 @@
-# Headline
+# Blog
 
-> An awesome project.
+alex-yrdm's blog
