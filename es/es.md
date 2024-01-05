@@ -324,11 +324,144 @@ POST /person/_update/1
 ```
 
 ## DSL查询
+
+基本语法:
+
+```json
+GET /索引库名/_search
+{
+	"query":{
+        "查询类型":{
+            "查询条件":"条件值"
+        }
+    }
+}
+```
+
+分类: 
+
+- 查询所有  match_all
+
+```json
+GET /indexName/_search
+{
+	"query":{
+        "match_all":{}
+    }	
+}
+```
+
+- 全文检索(full text)
+
+```json
+GET /indexName/_search
+{
+    "query":{
+        "match":{
+            "字段名": "值"
+        }
+    }
+}
+```
+
+```json
+GET /indexName/_search
+{
+    "query":{
+        "multi_match":{
+            "query":"值",
+            "fields":["字段1","字段2",...]
+        }
+    }
+}
+```
+
+- 精确查询: keyword 数值 日期等等类型查询
+
+  - term: 精确查询
+
+  ```json
+  GET /indexName/_search
+  {
+      "query":{
+          "term":{
+              "字段名":{
+                  "value":"取值"
+              }
+          }
+      }
+  }
+  ```
+
+  - range: 范围
+
+  ```json
+  GET /indexName/_search
+  {
+      "query":{
+          "range":{
+              "字段名":{
+                  "gte":10,
+                  "lte":20
+              }
+          }
+      }
+  }
+  ```
+
+- 地理查询
+
+  - geo_bounding_box: 某个矩形范围内的文档
+
+  ```json
+  GET /indexName/_search
+  {
+      "query":{
+          "geo_bounding_box":{
+              "字段名":{
+                  "top_left":{
+                      "lat":值1,
+                      "lon":值2
+                  },
+                  "bottom_right":{
+                      "lat":值3,
+                      "lon":值4
+                  }
+              }
+          }
+      }
+  }
+  ```
+
+  - geo_distance: 查询到指定中心点距离的所有文档
+
+  ```json
+  GET /indexName/_search
+  {
+      "query":{
+          "geo_distance":{
+          	"distance":"15km",
+              "字段名":"经度,纬度"
+          }
+      }
+  }
+  ```
+
+- 复合查询
+
 ### 相关性算分
+
+- TF (Term Frequency)
+
+$TF = \frac{词条出现次数}{文档中词条总数}$
+
 - TF-IDF : es5.0以前
 - BM25: es5.0后
 
 ### Function Score Query自定义算分
+
+![image-20240104160035522](./image-20240104160035522.png)
+
 ### Boolean Query
 一个或多个查询子句组合
 - must 参与算分,必须匹配
@@ -336,16 +469,54 @@ POST /person/_update/1
 - must_not 不参与算分,必须不成立
 - filter 不参与算分,必须匹配
 
+```json
+GET /indexName/_search
+{
+    "query":{
+        "bool":{
+            "must":[
+                {
+                    全文检索,精确查询,地理查询等
+                }
+            ],
+            "must_not":[
+                {
+                    全文检索,精确查询,地理查询等
+                }
+            ],
+            "should":[{}],
+            "filter":[{}]
+        }
+    }
+}
+```
+
 ## 搜索结果处理
 
 ### 排序
 默认按照相关度算分排序
 可排序字段:
+
 - keyword
 - 数值
 - 地理坐标
 - 日期
-使用上述字段时,就不再做相关性打分
+**使用上述字段时,就不再做相关性打分**
+
+```json
+GET /indexName/_search
+{
+    "query":{
+        "match_all":{}
+    },
+    "sort":{
+        "字段1":"asc / desc",
+        "字段2":"asc / desc"
+    }
+}
+```
+
+
 
 ### 分页
 默认返回10条结果\
@@ -355,8 +526,47 @@ from=10 size=10时,es会查询所有结果再从中截取想要的数据,单点�
 如果非要获取10000条以后的数据:
 es提供了解决方案, search after
 
+```json
+GET /indexName/_search
+{
+    "query":{
+        "match_all":{}
+    },
+    "sort":{
+        "字段1":"asc / desc",
+        "字段2":"asc / desc"
+    },
+    "from": 100,
+    "size": 10
+}
+```
+
+
+
 ### 高亮
 将搜索关键字突出显示
+
+```json
+GET /indexName/_search
+{
+    "query":{
+        "match":{
+            "字段":"值"
+        }
+    },
+    "highlight":{
+        "fields":{
+            "字段1":{
+                "pre_tags":"<em>",
+                "post_tags":"</em>"
+            },
+            "字段2":...
+        }
+    }
+}
+```
+
+
 
 ## 数据聚合 aggregations
 - **桶(Bucket)聚合**
@@ -368,11 +578,208 @@ es提供了解决方案, search after
     - Min
 - **管道(pipeline)聚合**: 对其他聚合结果再聚合
 
-
-
 ## 自动补全
 
 ## 数据同步
 es数据来自mysql
 
+- 同步阻塞式
+- 异步, 消息队列
+- 使用canal监听mysql的binlog
+
 ## 集群
+
+个人机器情况: windows10 物理主机 配置虚拟网卡 ip为 192.168.85.200  网关 192.168.85.2
+
+3台centos7.9.2009  配置静态ip
+
+3台机器ip分别为: 192.168.85.201 192.168.85.202  192.168.85.203
+
+能做到任意节点相互ping通
+
+搭建3节点的es集群: 
+
+将下方配置保存为elasticsearch.yml, 挂载数据卷时使用,作为es配置
+
+192.168.85.201: 
+
+```yml
+cluster.name: es
+# 当前该节点的名称，每个节点不能重复es-node-1，es-node-2，es-node-3
+node.name: es01
+# # 当前该节点是不是有资格竞选主节点
+node.master: true
+# # 当前该节点是否存储数据
+node.data: true
+# # 设置为公开访问
+network.host: 0.0.0.0
+# # 设置其它节点和该节点交互的本机器的ip地址，三台各自为
+network.publish_host: 192.168.85.201
+# # 设置映射端口
+http.port: 9200
+# # 内部节点之间沟通端口
+transport.tcp.port: 9300
+#
+# # 支持跨域访问
+http.cors.enabled: true
+
+http.cors.allow-origin: "*"
+#
+# # 配置集群的主机地址
+discovery.seed_hosts: ["192.168.85.201","192.168.85.202","192.168.85.203"]
+# # 初始主节点，使用一组初始的符合主条件的节点引导集群
+cluster.initial_master_nodes: ["es01","es02","es03"]
+# # 节点等待响应的时间，默认值是30秒,增加这个值，从一定程度上会减少误判导致脑裂
+discovery.zen.ping_timeout: 30s
+# # 配置集群最少主节点数目，通常为 (可成为主节点的主机数目 / 2) + 1
+discovery.zen.minimum_master_nodes: 2
+# # 禁用交换内存，提升效率
+bootstrap.memory_lock: false
+```
+
+然后使用docker启动容器
+
+```shell
+docker run --name=es01 -p 9200:9200 -p 9300:9300 \
+-e ES_JAVA_OPTS="-Xms512m -Xmx512m" \
+-v /root/es/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml \
+-v es01-data:/usr/share/elasticsearch/data \
+-v es01-plugins:/usr/share/elasticsearch/plugins \
+--restart=always \
+-d elasticsearch:7.17.16
+```
+
+第二台: 192.168.85.202
+
+```yml
+cluster.name: es
+# 当前该节点的名称，每个节点不能重复es-node-1，es-node-2，es-node-3
+node.name: es02
+# # # 当前该节点是不是有资格竞选主节点
+node.master: true
+# # # 当前该节点是否存储数据
+node.data: true
+# # # 设置为公开访问
+
+network.host: 0.0.0.0
+# # # 设置其它节点和该节点交互的本机器的ip地址，三台各自为
+network.publish_host: 192.168.85.202
+# # # 设置映射端口
+http.port: 9200
+# # # 内部节点之间沟通端口
+transport.tcp.port: 9300
+# #
+# # # 支持跨域访问
+http.cors.enabled: true
+#
+
+
+http.cors.allow-origin: "*"
+# #
+# # # 配置集群的主机地址
+discovery.seed_hosts: ["192.168.85.201","192.168.85.202","192.168.85.203"]
+# # # 初始主节点，使用一组初始的符合主条件的节点引导集群
+cluster.initial_master_nodes: ["es01","es02","es03"]
+# # # 节点等待响应的时间，默认值是30秒,增加这个值，从一定程度上会减少误判导致脑裂
+discovery.zen.ping_timeout: 30s
+# # # 配置集群最少主节点数目，通常为 (可成为主节点的主机数目 / 2) + 1
+discovery.zen.minimum_master_nodes: 2
+# # # 禁用交换内存，提升效率
+bootstrap.memory_lock: false
+
+```
+
+```shell
+docker run --name=es02 -p 9200:9200 -p 9300:9300 \
+-e ES_JAVA_OPTS="-Xms512m -Xmx512m" \
+-v /root/es/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml \
+-v es02-data:/usr/share/elasticsearch/data \
+-v es02-plugins:/usr/share/elasticsearch/plugins \
+--restart=always \
+-d elasticsearch:7.17.16
+```
+
+第三台: 192.168.85.203
+
+```yml
+cluster.name: es
+# 当前该节点的名称，每个节点不能重复es-node-1，es-node-2，es-node-3
+node.name: es03
+# # # 当前该节点是不是有资格竞选主节点
+node.master: true
+# # # 当前该节点是否存储数据
+node.data: true
+# # # 设置为公开访问
+
+network.host: 0.0.0.0
+# # # 设置其它节点和该节点交互的本机器的ip地址，三台各自为
+network.publish_host: 192.168.85.203
+# # # 设置映射端口
+http.port: 9200
+# # # 内部节点之间沟通端口
+transport.tcp.port: 9300
+# #
+# # # 支持跨域访问
+http.cors.enabled: true
+#
+
+
+http.cors.allow-origin: "*"
+# #
+# # # 配置集群的主机地址
+discovery.seed_hosts: ["192.168.85.201","192.168.85.202","192.168.85.203"]
+# # # 初始主节点，使用一组初始的符合主条件的节点引导集群
+cluster.initial_master_nodes: ["es01","es02","es03"]
+# # # 节点等待响应的时间，默认值是30秒,增加这个值，从一定程度上会减少误判导致脑裂
+discovery.zen.ping_timeout: 30s
+# # # 配置集群最少主节点数目，通常为 (可成为主节点的主机数目 / 2) + 1
+discovery.zen.minimum_master_nodes: 2
+# # # 禁用交换内存，提升效率
+bootstrap.memory_lock: false
+```
+
+```
+docker run --name=es03 -p 9200:9200 -p 9300:9300 \
+-e ES_JAVA_OPTS="-Xms512m -Xmx512m" \
+-v /root/es/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml \
+-v es03-data:/usr/share/elasticsearch/data \
+-v es03-plugins:/usr/share/elasticsearch/plugins \
+--restart=always \
+-d elasticsearch:7.17.16
+```
+
+安装 cerebro https://github.com/lmenezes/cerebro/releases/tag/v0.9.4 
+
+启动bin目录下 cerebro.bat
+
+登陆界面连接任意一台即可:
+
+成功界面:
+
+![image-20240104170549101](./image-20240104170549101.png)
+
+可以看到3个节点工作正常, es02为master节点
+
+使用nginx配置反向代理
+
+在nginx.conf中添加:
+
+```properties
+upstream   es-cluster {
+        server 192.168.85.201:9200;
+        server 192.168.85.202:9200;
+        server 192.168.85.203:9200;
+    }
+
+    server {
+        listen 8000;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://es-cluster;
+        }
+    
+    }
+```
+
+访问 http://localhost:8000 即可
