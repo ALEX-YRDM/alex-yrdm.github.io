@@ -1,0 +1,375 @@
+
+
+# Spring Cloud
+
+>  与springboot版本对应关系
+
+![image-20240115140224222](image-20240115140224222.png)
+
+>  Springcloud-alibaba版本对应
+
+https://github.com/alibaba/spring-cloud-alibaba/wiki/%E7%89%88%E6%9C%AC%E8%AF%B4%E6%98%8E
+
+![image-20240115140342581](image-20240115140342581.png)
+
+使用Springboot 2.6.13 springcloud 2021.0.1 spring-cloud-alibaba 2021.0.5.0
+
+```xml
+
+<properties>
+        <spring-boot.version>2.6.13</spring-boot.version>
+        <spring-cloud.version>2021.0.1</spring-cloud.version>
+        <spring-cloud-alibaba.version>2021.0.5.0</spring-cloud-alibaba.version>
+    </properties>
+<dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+</dependencyManagement>
+
+```
+
+
+
+## 服务注册与发现
+
+### Eureka
+
+#### Server 启动
+
+1. 引入依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+</dependency>
+```
+
+2.在启动类上添加注解 @EnableEurekaServer
+
+3.配置文件 application.properties
+
+```properties
+spring.application.name=eureka-app
+server.port=20020
+eureka.client.service-url.defaultZone=http://127.0.0.1:20020/eureka
+```
+
+4.启动后访问 http://127.0.0.1:20020
+
+![image-20240115143225256](image-20240115143225256.png)
+
+#### 服务注册
+
+新建服务1
+
+1.引入依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
+```
+
+2.添加配置
+
+```properties
+spring.application.name=link1
+server.port=9000
+eureka.client.service-url.defaultZone=http://127.0.0.1:20020/eureka
+```
+
+3.创建controller
+
+```java
+@RequestMapping("service")
+@RestController
+public class Link1Controller {
+    @GetMapping("link1")
+    public String link1(){
+        return "微服务链路1执行完毕";
+    }
+}
+```
+
+重复以上,在创建一个服务2
+
+```java
+spring.application.name=link2
+server.port=9001
+eureka.client.service-url.defaultZone=http://127.0.0.1:20020/eureka
+
+@RequestMapping("service")
+@RestController
+public class Link2Controller {
+    @GetMapping("link2")
+    public String link2(){
+        return "微服务链路2执行完毕";
+    }
+}
+```
+
+测试可以访问以上两个服务的接口,查看eureka 发现注册成功
+
+![image-20240115145904859](image-20240115145904859.png)
+
+#### 服务发现
+
+跨服务调用使用应用层的http协议发送请求, 使用RestTemplate进行
+
+注入RestTemplate
+
+```java
+@Bean
+@LoadBalanced
+public RestTemplate getRestTemplate(){
+    return new RestTemplate();
+}
+```
+
+编写新的controller
+
+```java
+@RequestMapping("service")
+@RestController
+public class Link1Controller {
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @GetMapping("link1")
+    public String link1(){
+        String url = "http://link2/service/link2";
+        String res = restTemplate.getForObject(url, String.class);
+        return "微服务链路1执行完毕"+res;
+    }
+
+}
+```
+
+注意: 必须在restTemplate上添加@LoadBalanced注解,否则无法将服务名解析为ip:port并使用ribbon进行负载均衡
+
+抛出UnknownHostExecption异常
+
+```
+报错信息如下:
+Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is org.springframework.web.client.ResourceAccessException: I/O error on GET request for "http://link2/service/link2": link2; nested exception is java.net.UnknownHostException: link2] with root cause
+
+java.net.UnknownHostException: link2
+	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:184) ~[na:1.8.0_392]
+	at java.net.PlainSocketImpl.connect(PlainSocketImpl.java:172) ~[na:1.8.0_392]
+	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:392) ~[na:1.8.0_392]
+	at java.net.Socket.connect(Socket.java:607) ~[na:1.8.0_392]
+	at java.net.Socket.connect(Socket.java:556) ~[na:1.8.0_392]
+```
+
+### Nacos
+
+![image-20240115171351277](image-20240115171351277.png)
+
+#### Server启动 (nacos2.2.0)
+
+修改配置 application.properties
+
+```properties
+spring.datasource.platform=mysql
+
+### Count of DB:
+db.num=1
+
+### Connect URL of DB:
+db.url.0=jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=UTC
+db.user.0=root
+db.password.0=root
+```
+
+创建数据库nacos, 执行该目录下的sql文件创建表结构
+
+![image-20240115175259725](image-20240115175259725.png)
+
+单机启动命令
+
+```shell
+startup.cmd -m standalone
+```
+
+![image-20240115175355745](image-20240115175355745.png)
+
+#### 服务注册
+
+1. 引入依赖
+
+```xml
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+</dependency>
+```
+
+2. 添加配置
+
+```properties
+spring.application.name=link1
+server.port=9002
+spring.cloud.nacos.server-addr=127.0.0.1:8848
+```
+
+3.编写controller并启动, 访问 http://localhostL8848/nacos
+
+![image-20240115171251502](image-20240115171251502.png)
+
+#### 服务发现
+
+https://blog.csdn.net/weixin_43887184/article/details/124036205
+
+必须添加loadbalancer依赖,否则无法远程调用
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-loadbalancer</artifactId>
+</dependency>
+```
+
+#### 服务集群
+
+```properties
+spring.cloud.nacos.discovery.cluster-name=xian
+```
+
+#### 命名空间
+
+不同环境相互隔离
+
+```properties
+spring.cloud.nacos.discovery.namespace=ba332e10-ef24-4e05-b1c2-3f903df60fde
+```
+
+#### 配置中心
+
+引入依赖
+
+```xml
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+</dependency>
+```
+
+在nacos中编写配置信息:
+
+![image-20240116164832471](image-20240116164832471.png)
+
+- Data ID: 应用名-profile.后缀    (yaml 或者 properties)
+
+添加bootstrap依赖, spring cloud2.4后,不在优先读取bootstrap文件
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-bootstrap</artifactId>
+</dependency>
+```
+
+编写bootstrap.properties文件, 包括应用名 profile 文件后缀, 配置文件所在命名空间
+
+```properties
+spring.application.name=link1
+spring.profiles.active=dev
+spring.cloud.nacos.config.file-extension=properties
+spring.cloud.nacos.config.namespace=ba332e10-ef24-4e05-b1c2-3f903df60fde
+prop2From=bootstrap_yaml
+```
+
+编写controller, 使用@Value注入所写配置信息并测试
+
+```java
+@Slf4j
+@RequestMapping("service")
+@RestController
+public class Link1Controller {
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${propFrom}")
+    private String p1;
+    @Value("${prop2From}")
+    private String p2;
+    @Value("${prop3From}")
+    private String p3;
+    @GetMapping("link1")
+    public String link1(){
+        String url = "http://link2/service/link2";
+        String res = restTemplate.getForObject(url, String.class);
+        return "微服务链路1执行完毕"+res;
+    }
+
+    @GetMapping("getProp")
+    public String getP(){
+        log.info(p1);
+        log.info(p2);
+        log.info(p3);
+        return p1+p2+p3;
+    }
+}
+
+
+```
+
+查看日志,或者接口返回信息即可看到成功读取
+
+```java
+2024-01-16 16:52:08.010  INFO 14176 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : nacos8848
+2024-01-16 16:52:08.011  INFO 14176 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : bootstrap_yaml
+2024-01-16 16:52:08.011  INFO 14176 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : app_yaml
+```
+
+nacos8848为nacos中的配置propFrom,成功注入到p1
+
+prop2From为bootstrap中的自定义配置
+
+prop3From为application.properties中定义
+
+## 负载均衡
+
+![image-20240115152026509](image-20240115152026509.png)
+
+eureka包下已经默认有loadbalancer依赖
+
+从 Spring Cloud 2020.0.0-M1 开始, 移除ribbon
+
+![image-20240115155806198](image-20240115155806198.png)
+
+目前只有两个默认的策略 轮询和随机
+
+![image-20240115163120710](image-20240115163120710.png)
+
+## 网关
+
+## 服务配置
+
+## 限流 熔断 降级
+
+
+
