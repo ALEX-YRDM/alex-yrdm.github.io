@@ -104,7 +104,7 @@ eureka.client.service-url.defaultZone=http://127.0.0.1:20020/eureka
 3.创建controller
 
 ```java
-@RequestMapping("service")
+@RequestMapping("service1")
 @RestController
 public class Link1Controller {
     @GetMapping("link1")
@@ -121,7 +121,7 @@ spring.application.name=link2
 server.port=9001
 eureka.client.service-url.defaultZone=http://127.0.0.1:20020/eureka
 
-@RequestMapping("service")
+@RequestMapping("service2")
 @RestController
 public class Link2Controller {
     @GetMapping("link2")
@@ -152,7 +152,7 @@ public RestTemplate getRestTemplate(){
 编写新的controller
 
 ```java
-@RequestMapping("service")
+@RequestMapping("service1")
 @RestController
 public class Link1Controller {
     @Autowired
@@ -160,7 +160,7 @@ public class Link1Controller {
 
     @GetMapping("link1")
     public String link1(){
-        String url = "http://link2/service/link2";
+        String url = "http://link2/service2/link2";
         String res = restTemplate.getForObject(url, String.class);
         return "微服务链路1执行完毕"+res;
     }
@@ -306,7 +306,7 @@ prop2From=bootstrap_yaml
 
 ```java
 @Slf4j
-@RequestMapping("service")
+@RequestMapping("service1")
 @RestController
 public class Link1Controller {
     @Autowired
@@ -320,7 +320,7 @@ public class Link1Controller {
     private String p3;
     @GetMapping("link1")
     public String link1(){
-        String url = "http://link2/service/link2";
+        String url = "http://link2/service2/link2";
         String res = restTemplate.getForObject(url, String.class);
         return "微服务链路1执行完毕"+res;
     }
@@ -351,6 +351,134 @@ prop2From为bootstrap中的自定义配置
 
 prop3From为application.properties中定义
 
+**配置动态更新方式**:
+
+- 使用@RefreshScope注解,作用于注入远程配置的类上
+- ~~不使用@Value注解, 使用@ConfigurationProperties注解代替,无须@RefreshScope即可动态更新~~ 未成功
+
+**多环境配置共享**
+
+微服务启动会从nacos读取以下配置:
+
+- [spring.application.name]-[spring.profiles.active].yaml
+- [spring.application.name].yaml  (共享配置可以放在这里)
+
+![image-20240117102615324](image-20240117102615324.png)
+
+**多个不同微服务配置共享**
+
+配置信息:
+
+![image-20240117103652827](image-20240117103652827.png)
+
+```properties
+spring.cloud.nacos.config.extension-configs[0].data-id=extend_common.properties
+spring.cloud.nacos.config.shared-configs[0].data-id=shared_common.properties
+```
+
+```java
+@Slf4j
+@RequestMapping("service")
+@RestController
+@RefreshScope
+//@ConfigurationProperties
+public class Link1Controller {
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @Value("${propFrom}")
+    private String p1;
+    @Value("${prop2From}")
+    private String p2;
+    @Value("${prop3From}")
+    private String p3;
+    @Value("${prop4From}")
+    private String p4;
+    @Value("${prop5From}")
+    private String p5;
+    @Value("${prop6From}")
+    private String p6;
+    @GetMapping("link1")
+    public String link1(){
+        String url = "http://link2/service/link2";
+        String res = restTemplate.getForObject(url, String.class);
+        return "微服务链路1执行完毕"+res;
+    }
+
+    @GetMapping("getProp")
+    public String getP(){
+        log.info(p1);
+        //log.info(propFrom);
+        log.info(p2);
+        log.info(p3);
+        log.info(p4);
+        log.info(p5);
+        log.info(p6);
+        return p1+p2+p3+p4+p5+p6;
+        //return propFrom+p2+p3;
+    }
+
+
+}
+```
+
+访问getProp接口, 日志如下:
+
+```properties
+2024-01-17 10:41:20.565  INFO 6636 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : nacos_props
+2024-01-17 10:41:20.565  INFO 6636 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : bootstrap_yaml
+2024-01-17 10:41:20.565  INFO 6636 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : app_yaml
+2024-01-17 10:41:20.565  INFO 6636 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : link1_props
+2024-01-17 10:41:20.566  INFO 6636 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : extend_common
+2024-01-17 10:41:20.566  INFO 6636 --- [nio-9002-exec-1] org.zbq.controller.Link1Controller       : shared_common
+```
+
+其中p1来自nacos中的 link1-dev.properties, p2来自本地bootstrap.properties, p3来自本地application.properties
+
+p4来自nacos中link1.properties p5来自nacos中extend_common.properties,p6来自nacos中shared_common.properties
+
+![image-20240117105728633](image-20240117105728633.png)
+
+#### 集群搭建
+
+在conf目录下添加cluster.conf文件,内容为:
+
+```
+127.0.0.1:8846
+127.0.0.1:8847
+127.0.0.1:8848
+```
+
+将修改好的nacos目录复制2份,修改复制nacos中application.properties端口为8846和8847
+
+![image-20240117110532418](image-20240117110532418.png)
+
+依次启动即可 启动命令
+
+```
+startup.cmd
+```
+
+启动中可能会报错:
+
+```properties
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'grpcClusterServer': Invocation of init method failed; nested exception is java.io.IOException: Failed to bind
+```
+
+这是由于:
+
+![image-20240117111357361](image-20240117111357361.png)
+
+即1个8848端口的nacos还会占用9848,9849,7848端口, 因此重新配置cluster.conf文件以及设置nacos端口
+
+```
+127.0.0.1:8844
+127.0.0.1:8846
+127.0.0.1:8848
+```
+
+![image-20240117111955086](image-20240117111955086.png)
+
 ## 负载均衡
 
 ![image-20240115152026509](image-20240115152026509.png)
@@ -365,9 +493,378 @@ eureka包下已经默认有loadbalancer依赖
 
 ![image-20240115163120710](image-20240115163120710.png)
 
+## RPC远程过程调用 
+
+### Feign使用
+
+1. 引入依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+```
+
+2.启动类添加 @EnableFeignClients注解
+
+3.编写接口 (复用Spring MVC的注解)
+
+```java
+@FeignClient("link2")
+public interface Link2Client {
+    @GetMapping("/service/link2")
+    String getLink2();
+}
+```
+
+4.在controller中注入并使用
+
+```java
+@RequestMapping("service1")
+@RestController
+@RefreshScope
+public class Link1Controller {
+    @Autowired
+    private Link2Client link2Client;
+    @GetMapping("link1")
+    public String link1(){
+        String res = link2Client.getLink2();
+        return "微服务链路1执行完毕 "+res;
+    }
+}
+
+```
+
+在当前版本下,feign默认开启使用Apache HttpClient作为底层,使用默认配置即可
+
 ## 网关
 
-## 服务配置
+**Spring Cloud Gateway**
+
+网关作用
+
+- 鉴权
+- 路由
+- 限流
+
+使用:
+
+1.引入依赖 (**只要是调用其他服务必须引loadbalancer, 否则无法发现服务**)
+
+```xml
+<dependency>
+    <groupId>com.alibaba.cloud</groupId>
+    <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-gateway</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-loadbalancer</artifactId>
+</dependency>
+```
+
+2.编写配置文件
+
+```yaml
+spring:
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      server-addr: http://127.0.0.1:8848
+      discovery:
+        namespace: ba332e10-ef24-4e05-b1c2-3f903df60fde
+        cluster-name: xian
+    gateway:
+      routes:
+        - id: link1
+          uri: lb://link1
+          predicates:
+            - Path=/service1/**
+
+        - id: link2
+          uri: lb://link2
+          predicates:
+            - Path=/service2/**
+
+server:
+  port: 10001
+```
+
+3. 访问: http://127.0.0.1:10001/service1/link1 和 http://127.0.0.1:10001/service2/link2 访问成功
+
+### 路由断言工厂
+
+(更详细的使用 https://www.hxstrive.com/subject/gateway/2605.htm)
+
+1. After
+
+接受一个UTC格式的日期时间格式参数,表示在该时间点之后允许路由
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: after_route
+        uri: https://example.org
+        predicates:
+        - After=2022-03-13T00:54:30.877+08:00[Asia/Shanghai] 
+```
+
+2. Before 
+
+参数同上, 表示某个时间点之前允许路由
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: before_route
+        uri: https://example.org
+        predicates:
+        - Before=2024-05-20T00:54:30.877+08:00[Asia/Shanghai]
+```
+
+3. Between 
+
+跟两个参数, datetime1 datetime2 表示在这个时间段内允许路由
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: between_route
+        uri: https://example.org
+        predicates:
+        - Between=2024-05-20T00:00:00.000+08:00[Asia/Shanghai],2024-05-21T00:00:00.000+08:00[Asia/Shanghai]
+```
+
+4. Cookie
+
+接两个参数, key 和 value, value可以为正则表达式, 即只有携带该cookie key且value匹配才可以路由
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: cookie_route
+        uri: https://example.org
+        predicates:
+        - Cookie=chocolate, ch.p
+```
+
+5. Header
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: header_route
+        uri: http://example.org
+        predicates:
+        - Header=X-Request-Id, \d+
+
+```
+
+6.Host  (请求头中)
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: host_route
+        uri: https://example.org
+        predicates:
+        - Host=**.somehost.org,**.anotherhost.org
+```
+
+7.Method
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: method_route
+        uri: https://example.org
+        predicates:
+        - Method=GET,POST
+```
+
+上述示例表示只有 GET和POST请求允许路由
+
+8.Path
+
+根据请求路径匹配
+
+```yaml
+spring:
+    gateway:
+      routes:
+        - id: link1
+          uri: lb://link1
+          predicates:
+            - Path=/service1/**
+
+        - id: link2
+          uri: lb://link2
+          predicates:
+            - Path=/service2/**
+```
+
+9.Query
+
+请求参数中含有名为green的参数即可
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: query_route
+        uri: https://example.org
+        predicates:
+        - Query=green
+```
+
+请求参数中有名为red, 值与gree.匹配的参数时才可访问
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: query_route
+        uri: https://example.org
+        predicates:
+        - Query=red, gree.
+```
+
+10.RemoteAddr
+
+位于该网段下的ip才可访问
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: remoteaddr_route
+        uri: https://example.org
+        predicates:
+        - RemoteAddr=192.168.1.1/24
+```
+
+11.Weight
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: weight_high
+        uri: https://weighthigh.org
+        predicates:
+        - Weight=group1, 8
+      - id: weight_low
+        uri: https://weightlow.org
+        predicates:
+        - Weight=group1, 2
+```
+
+80%请求访问weighthigh.org, 20%请求访问weightlow.org
+
+### 网关过滤工厂
+
+1. AddRequestHeader
+2. RemoveRequestHeader
+3. AddResponseHeader
+4. RemoveResponseHeader
+5. RequestRateLimiter
+
+... 更多请参考https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway/gatewayfilter-factories.html
+
+**默认过滤器**,对所有的路由生效
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      default-filters:
+      - AddResponseHeader=X-Response-Default-Red, Default-Blue
+      - PrefixPath=/httpbin
+```
+
+**全局过滤器**
+
+自定义编码实现
+
+```java
+@Component
+@Order(-1)
+public class CustomGlobalFilter implements GlobalFilter {
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        return null;
+    }
+}
+```
+
+过滤器 order值越小,优先级越高
+
+order值相同时, 顺序为: defaultFilter -> 路由过滤器 -> GlobalFilter
+
+### 跨域处理
+
+#### 全局跨域配置
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "https://docs.spring.io"
+            allowedMethods:
+            - GET
+```
+
+- /** 表示作用于所有请求
+- allowedOrigins: 允许哪些网站的跨域请求
+- allowedMethods: 允许跨域的请求方式
+
+#### 单个微服务跨域配置
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: cors_route
+        uri: https://example.org
+        predicates:
+        - Path=/service/**
+        metadata:
+          cors
+            allowedOrigins: '*'
+            allowedMethods:
+              - GET
+              - POST
+            allowedHeaders: '*'
+            maxAge: 30
+```
 
 ## 限流 熔断 降级
 

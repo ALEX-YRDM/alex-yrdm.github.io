@@ -6,7 +6,7 @@
 * [linux 命令](linux/linux.md)
 * [SpringCloud](spring-cloud/cloud)
 * [设计模式]()
-* [mq]()
+* [mq](mq/rabbitmq)
 * [mybatiss]()
 * [spring&MVC]()
 * [nacos]()
