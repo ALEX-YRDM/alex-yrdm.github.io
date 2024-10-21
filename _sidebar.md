@@ -5,16 +5,6 @@
 * [es](es/es.md)
 * [linux 命令](linux/linux.md)
 * [SpringCloud](spring-cloud/cloud)
-* [设计模式]()
 * [mq](mq/rabbitmq)
-* [mybatiss]()
-* [spring&MVC]()
-* [nacos]()
-* [dubbo]()
-* [xxl-job]()
-* [gateway]()
-* [React]()
-* [copy-to-use]()
-* [mysql]()
-* [redis]()
+
 

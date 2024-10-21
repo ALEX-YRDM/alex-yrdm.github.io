@@ -317,6 +317,8 @@ public void test(){
 
 RabbitMQ默认使用JDK自带序列化
 
+引入以下依赖修改序列化方法:
+
 ```xml
 <dependency>
     <groupId>com.fasterxml.jackson.core</groupId>
