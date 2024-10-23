@@ -7,6 +7,6 @@
 * [SpringCloud](spring-cloud/cloud)
 * [mq](mq/rabbitmq)
 * [设计模式](design-pattern/design-pattern.md)
-* [JUC](juc/juc.md)
+* [JUC](JUC/juc.md)
 
 
