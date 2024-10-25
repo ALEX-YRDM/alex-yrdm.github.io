@@ -18,5 +18,4 @@
   * [基础知识](os/os.md)
   * [Linux常用命令](linux/linux.md)
 * 网络
-* 数据库
 * 高级数据结构
