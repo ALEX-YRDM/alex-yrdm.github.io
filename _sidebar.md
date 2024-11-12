@@ -8,5 +8,6 @@
 * [mq](mq/rabbitmq)
 * [设计模式](design-pattern/design-pattern.md)
 * [juc](juc/juc.md)
+* [redis](redis/redis.md)
 
 

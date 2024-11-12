@@ -8,7 +8,7 @@
 * 中间件
   * [ElasticSearch](es/es.md)
   * [mq](mq/rabbitmq.md)
-  * [redis]()
+  * [redis](redis/redis.md)
   * [mysql]()
 * 前端
   * [react01](react/react01.md)
