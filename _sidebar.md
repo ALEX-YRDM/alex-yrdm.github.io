@@ -9,5 +9,6 @@
 * [设计模式](design-pattern/design-pattern.md)
 * [juc](juc/juc.md)
 * [redis](redis/redis.md)
+* [常用代码模板](code_template/code_template.md)
 
 
