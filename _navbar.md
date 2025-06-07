@@ -9,7 +9,7 @@
   * [ElasticSearch](es/es.md)
   * [mq](mq/rabbitmq.md)
   * [redis](redis/redis.md)
-  * [mysql]()
+  * [mysql](database/mysql.md)
 * 前端
   * [react01](react/react01.md)
   * [react02](react/react02.md)
