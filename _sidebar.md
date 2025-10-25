@@ -1,16 +1,24 @@
 <!-- docs/_sidebar.md -->
 
-* [docker入门](docker/docker01.md)
-* [docker进阶](docker/docker02.md)
-* [es](es/es.md)
-* [linux 命令](linux/linux.md)
-* [SpringCloud](spring-cloud/cloud)
-* [mq](mq/rabbitmq)
-* [设计模式](design-pattern/design-pattern.md)
-* [juc](juc/juc.md)
-* [redis](redis/redis.md)
-* [常用代码模板](code_template/code_template.md)
-
-- [LLM]()
-- [RAG]()
-- [多模态](Multimidea/mm.md)
+- Docker
+  - [docker入门](docker/docker01.md)
+  - [docker进阶](docker/docker02.md)
+- 中间件
+  - [es](es/es.md)
+  - [mq](mq/rabbitmq.md)
+  - [redis入门](redis/redis.md)
+  - [redis进阶](redis/redis_advance.md)
+- java
+  - [微服务 SpringCloud](spring-cloud/cloud)
+  - [并发 juc](juc/juc.md)
+- React
+  - [React01](react/react01.md)
+  - [React02](react/react02.md)
+  - [ReactRouter](react/react_router.md)
+- LLM相关
+  - [RAG]()
+  - [多模态 Flux Kontext技术细节](Multimidea/mm.md)
+- 其他
+  - [linux 命令](linux/linux.md)
+  - [设计模式](design-pattern/design-pattern.md)
+  - [常用代码模板](code_template/code_template.md)
