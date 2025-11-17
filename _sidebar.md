@@ -18,7 +18,9 @@
 - LLM相关
   - [RAG]()
   - [多模态 Flux Kontext技术细节](Multimidea/mm.md)
+- 设计模式
+  - [Overview](design-pattern/overview.md)
+  - [单例模式](design-pattern/singleton.md)
 - 其他
   - [linux 命令](linux/linux.md)
-  - [设计模式](design-pattern/design-pattern.md)
   - [常用代码模板](code_template/code_template.md)
