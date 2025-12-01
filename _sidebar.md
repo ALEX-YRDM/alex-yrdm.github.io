@@ -1,8 +1,9 @@
 <!-- docs/_sidebar.md -->
 
-- Docker
+- Docker & K8s
   - [docker入门](docker/docker01.md)
   - [docker进阶](docker/docker02.md)
+  - [K8s](k8s/k8s.md)
 - 中间件
   - [es](es/es.md)
   - [mq](mq/rabbitmq.md)
@@ -21,6 +22,27 @@
 - 设计模式
   - [Overview](design-pattern/overview.md)
   - [单例模式](design-pattern/singleton.md)
+  - [工厂模式](design-pattern/factory.md)
+  - [建造者模式](design-pattern/builder.md)
+  - [原型模式](design-pattern/prototype.md)
+  - [适配器模式](design-pattern/adapter.md)
+  - [组合模式](design-pattern/composite.md)
+  - [代理模式](design-pattern/proxy.md)
+  - [享元模式](design-pattern/flyweight.md)
+  - [外观模式](design-pattern/facade.md)
+  - [桥接模式](design-pattern/bridge.md)
+  - [装饰器模式](desigb-pattern/decorator.md)
+  - [模版方法模式](design-pattern/template_method.md)
+  - [中介者模式](design-pattern/mediator.md)
+  - [责任链模式](design-pattern/chain.md)
+  - [观察者模式](design-pattern/observer.md)
+  - [策略模式](design-pattern/strategy.md)
+  - [命令模式](design-pattern/command.md)
+  - [状态模式](design-pattern/state.md)
+  - [访问者模式](design-pattern/visitor.md)
+  - [迭代器模式](design-pattern/iterator.md)
+  - [备忘录模式](design-pattern/momento.md)
+  - [解释器模式]
 - 其他
   - [linux 命令](linux/linux.md)
   - [常用代码模板](code_template/code_template.md)
