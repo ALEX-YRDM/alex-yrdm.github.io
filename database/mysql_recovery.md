@@ -151,6 +151,12 @@ docker run -d \
 
 ![image-20260119171146987](image-20260119171146987.png)
 
+在控制台打出的日志中可以看到具体执行命令为：
+
+```shell
+/opt/homebrew/opt/mysql-client/bin/mysqldump lumina --result-file=/Users/zbq/mysql_recovery-2026_01_19_17_12_07-dump.sql --no-tablespaces --skip-add-locks --user=lumina --host=127.0.0.1 --port=3306
+```
+
 使用mysqldump导出，得到
 
 mysql_recovery-2026_01_19_17_12_07-dump.sql 
